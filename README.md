@@ -31,4 +31,4 @@ To install the required libraries into the Arduino IDE there are two methods
 &nbsp;&nbsp;&nbsp;&nbsp;**Note:** This folder should already have been made when installing the Arduino IDE software onto your PC and typically resides within *C:/Users/YOUR_USER/Documents/*.
 ## Authors
 
-* **Matthew Fisher** - *el16m2f*
+* **Matthew Fisher** 4th Year Mechatronics and Robotics, University of Leeds - *el16m2f*

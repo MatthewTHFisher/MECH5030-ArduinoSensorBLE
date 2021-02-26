@@ -27,7 +27,7 @@ To install the required libraries into the Arduino IDE there are two methods
 &nbsp;&nbsp;&nbsp;&nbsp;**Note:** If asked to install additional libraries it is advised to choose YES otherwise the installed library may not work as it should.
    
 **2. Manually downloading the Library Folder**
-&nbsp;&nbsp;&nbsp;&nbsp;Find the library that you require installing (Heres the online library for [Adafruit_LSM6DS.h](https://github.com/adafruit/Adafruit_LSM6DS)). Once downloaded onto the PC simply move it in to your folder for Arduino libraries **/Arduino/libraries/*.
+&nbsp;&nbsp;&nbsp;&nbsp;Find the library that you require installing (Heres the online library for [Adafruit_LSM6DS.h](https://github.com/adafruit/Adafruit_LSM6DS)). Once downloaded onto the PC simply move it in to your folder for Arduino libraries `/Arduino/libraries/*`
 &nbsp;&nbsp;&nbsp;&nbsp;**Note:** This folder should already have been made when installing the Arduino IDE software onto your PC and typically resides within *C:/Users/YOUR_USER/Documents/*.
 ## Authors
 

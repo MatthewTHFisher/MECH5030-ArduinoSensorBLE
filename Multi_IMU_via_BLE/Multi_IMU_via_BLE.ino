@@ -15,8 +15,8 @@
  *       5 - Turn on which IMU data should be sent of accel, gyro, mag
  */
 
-#include <ArduinoBLE.h>         // Library for built-in BLE module
-#include <Arduino_LSM9DS1.h>    // Library for Nano built-in IMU
+#include <ArduinoBLE.h>         // Library for Nano built-in BLE chip
+#include <Arduino_LSM9DS1.h>    // Library for Nano built-in IMU chip
 #include <Adafruit_LSM6DS33.h>  // Library for external IMU accel and gyro chip
 #include <Adafruit_LIS3MDL.h>   // Library for external IMU magnetometer chip
 #include <Adafruit_Sensor.h>
@@ -82,7 +82,7 @@ bool ble_connected = false;   // Whether a BLE device is connected or not
 
 volatile bool get_accel = true;   // Whether data should be collected for accelerometers
 volatile bool get_gyro = true;    // Whether data should be collected for gyroscopes
-volatile bool get_mag = false;    // Whether data should be collected for magnetometers
+volatile bool get_mag = true;     // Whether data should be collected for magnetometers
 
 // The delimeter used in the data string passed via BLE
 String delim = ",";
@@ -113,10 +113,12 @@ void setup() {
 
   // Initialise the 4 LED peripherals attached to the Arduino board
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
   pinMode(LEDR, OUTPUT);
   pinMode(LEDG, OUTPUT);
   pinMode(LEDB, OUTPUT);
-
+  write_rgb_led(255,0,0);   // Set RGB red to signal thats its setting up
+  
   /**
    * The below is peripheral setup for all the IMUs
    * If it fails to setup any peripheral then an endless crash loop is entered flashing a warning LED.
@@ -182,13 +184,14 @@ void setup() {
   // >> End of BLE Setup
 
   // Signal to show that the device setup correctly
-  for (int i = 0; i<=5; i++) {
+  for (int i = 0; i<=4; i++) {
     write_rgb_led(0,255,0);
-    delay(250);
+    delay(200);
     write_rgb_led(0,0,0);
-    delay(250);
+    delay(200);
   }
 
+  delay(500);
   Serial.println("Bluetooth device active, waiting for connection...");
 }
 

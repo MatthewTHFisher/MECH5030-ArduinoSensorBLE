@@ -103,9 +103,8 @@ void setup() {
   write_rgb_led(255,0,0);   // Set RGB red to signal thats its setting up
   
   /**
-   * The below is peripheral setup for all the IMUs
-   * If it fails to setup any peripheral then an endless crash loop is entered flashing a warning LED.
-   * For the program to work all of the peripherals must be correctly plugged in!
+   * The below is peripheral setup for all the built-in IMU
+   * If it fails to setup then an endless crash loop is entered flashing a warning LED.
    */
   if (!IMU.begin()) { Serial.println("Failed to initalise builtin IMU...");                                   crash_sequence(); }
 
@@ -229,34 +228,30 @@ void loop() {
         
         // By default no data is printed to the console but for debugging purposes
         //  imu_to_print can be set to print over serial.
-        int imu_to_print = 0;
-        switch (imu_to_print){
-          case 1:
-            Serial.println(currentMillis);
-            if(get_accel){
-              Serial.print(imu_data.accel.x, dec_precision); Serial.print(",");
-              Serial.print(imu_data.accel.y, dec_precision); Serial.print(",");
-              Serial.print(imu_data.accel.z, dec_precision); Serial.print(",");
-            }
-            if (get_gyro){
-              Serial.print(imu_data.gyro.x, dec_precision); Serial.print(",");
-              Serial.print(imu_data.gyro.y, dec_precision); Serial.print(",");
-              Serial.print(imu_data.gyro.z, dec_precision); Serial.print(",");
-            }
-            if (get_mag){
-              Serial.print(imu_data.mag.x, dec_precision); Serial.print(",");
-              Serial.print(imu_data.mag.y, dec_precision); Serial.print(",");
-              Serial.print(imu_data.mag.z, dec_precision); 
-            }
-            Serial.print("\n");
-            break;
-          default:
-            break;
+        bool display_values = false;
+        if display_values {
+          Serial.println(currentMillis);
+          if(get_accel){
+            Serial.print(imu_data.accel.x, dec_precision); Serial.print(",");
+            Serial.print(imu_data.accel.y, dec_precision); Serial.print(",");
+            Serial.print(imu_data.accel.z, dec_precision); Serial.print(",");
+          }
+          if (get_gyro){
+            Serial.print(imu_data.gyro.x, dec_precision); Serial.print(",");
+            Serial.print(imu_data.gyro.y, dec_precision); Serial.print(",");
+            Serial.print(imu_data.gyro.z, dec_precision); Serial.print(",");
+          }
+          if (get_mag){
+            Serial.print(imu_data.mag.x, dec_precision); Serial.print(",");
+            Serial.print(imu_data.mag.y, dec_precision); Serial.print(",");
+            Serial.print(imu_data.mag.z, dec_precision); 
+          }
+          Serial.print("\n");
         }
 
         /**
          * To send data via BLE the data is condensed into one long string where the very first element is the timestamp
-         * e.g. Timestamp,imu1_accelX,imu1_accelY,imu1_accelZ,imu1_gyroX ... imu3_magY,imu3_magZ
+         * e.g. Timestamp,imu_accelX,imu_accelY,imu_accelZ,imu_gyroX ... imu_magY,imu_magZ
          * Note: 'delim' is a variable defined in the heading and is used to seperate the values with a ',' for example.
          */
         String str = String(currentMillis);

@@ -9,9 +9,11 @@
 #define MECH5030_Sensors_h
 
 #define IMU2_AG_ADDRESS     0x6A
-#define IMU2_M_ADDRESS      0x6B
-#define IMU3_AG_ADDRESS     0X1C
+#define IMU2_M_ADDRESS      0x1C
+#define IMU3_AG_ADDRESS     0X6B
 #define IMU3_M_ADDRESS      0X1E
+
+#define RAD_TO_DEG      57.2958
 
 #include "Arduino.h"
 #include <Arduino_LSM9DS1.h>    // Library for Nano built-in IMU chip
@@ -54,6 +56,7 @@ struct threeImuData {
 
 class MECH5030_Sensors{
   private:
+    LSM9DS1Class *_imu1 = &IMU;
     Adafruit_LSM6DS33 *_imu2_ag;
     Adafruit_LIS3MDL *_imu2_m;
     Adafruit_LSM6DS33 *_imu3_ag;

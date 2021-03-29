@@ -26,12 +26,18 @@ MECH5030_Sensors::~MECH5030_Sensors(void)
 bool MECH5030_Sensors::init(void)
 {
     // BEGIN I2C on ALL IMUS
-    if (!IMU.begin())       { return false; }
-    if (!_imu2_ag->begin_I2C(0x6A))  { return false; }
-    if (!_imu2_m->begin_I2C(0x6B))   { return false; }
-    if (!_imu3_ag->begin_I2C(0x1C))  { return false; }
-    if (!_imu3_m->begin_I2C(0x1E))   { return false; }
-     
+    Serial.println("Attemping initalisation of IMUS...");
+    if (!_imu1->begin())             { return false; }
+    Serial.println("IMU1 Init");
+    if (!_imu2_ag->begin_I2C(IMU2_AG_ADDRESS))  { return false; }
+    Serial.println("IMU2 AG Init");
+    if (!_imu2_m->begin_I2C(IMU2_M_ADDRESS))   { return false; }
+    Serial.println("IMU2 M Init");
+    if (!_imu3_ag->begin_I2C(IMU3_AG_ADDRESS))  { return false; }
+    Serial.println("IMU3 AG Init");
+    if (!_imu3_m->begin_I2C(IMU3_M_ADDRESS))   { return false; }
+    Serial.println("IMU3 M Init");
+    
     init_ext_imu_ag(_imu2_ag);
     init_ext_imu_m(_imu2_m);
     init_ext_imu_ag(_imu3_ag);
@@ -105,15 +111,16 @@ String MECH5030_Sensors::getDataAsString(String delim, unsigned char dec_precisi
     return str;
 }
 
+// Returns data in the format (m/s^s, deg/s, uT)
 threeImuData MECH5030_Sensors::getData(void)
 {
     // Log the current timestamp of the Arduino
     long timestamp = millis();
     
-    // IMU 1 Data Read
+    // IMU 1 Data Read (G's, deg/s, uT)
     // >> Data collection for the Nano's built-in IMU
-    if (IMU.accelerationAvailable() && _get_accel)  {
-        IMU.readAcceleration(_imu1_data.accel.x, _imu1_data.accel.y, _imu1_data.accel.z);
+    if (_imu1->accelerationAvailable() && _get_accel)  {
+        _imu1->readAcceleration(_imu1_data.accel.x, _imu1_data.accel.y, _imu1_data.accel.z);
 
         //Onboard IMU-accelerometer requires converting to change from G's into M/S^2
         _imu1_data.accel.x = _imu1_data.accel.x * SENSORS_GRAVITY_STANDARD;
@@ -122,13 +129,13 @@ threeImuData MECH5030_Sensors::getData(void)
     }
     
     // Onboard IMU-Gyrometer reads data in
-    if (IMU.gyroscopeAvailable() && _get_gyro) {
-        IMU.readGyroscope(_imu1_data.gyro.x, _imu1_data.gyro.y, _imu1_data.gyro.z);
+    if (_imu1->gyroscopeAvailable() && _get_gyro) {
+        _imu1->readGyroscope(_imu1_data.gyro.x, _imu1_data.gyro.y, _imu1_data.gyro.z);
     }
     
     // Onboard IMU-Magnetometer reads data in uT
-    if (IMU.magneticFieldAvailable() && _get_mag) {
-        IMU.readMagneticField(_imu1_data.mag.x, _imu1_data.mag.y, _imu1_data.mag.z);
+    if (_imu1->magneticFieldAvailable() && _get_mag) {
+        _imu1->readMagneticField(_imu1_data.mag.x, _imu1_data.mag.y, _imu1_data.mag.z);
     }
     
     // Temporary variables to hold the data of the external IMUs
@@ -137,15 +144,15 @@ threeImuData MECH5030_Sensors::getData(void)
     sensors_event_t temp;
     sensors_event_t mag;
     
-    // >> Data collection for IMU 2
+    // IMU 2 Data Read (M/S^2, rad/s, uT)
     if (_get_accel || _get_gyro) {    //Since accel and gyro are on the same chip we must do both together
       _imu2_ag->getEvent(&accel, &gyro, &temp);
       _imu2_data.accel.x = accel.acceleration.x;
       _imu2_data.accel.y = accel.acceleration.y;
       _imu2_data.accel.z = accel.acceleration.z;
-      _imu2_data.gyro.x = gyro.gyro.x;
-      _imu2_data.gyro.y = gyro.gyro.y;
-      _imu2_data.gyro.z = gyro.gyro.z;
+      _imu2_data.gyro.x = gyro.gyro.x*RAD_TO_DEG;
+      _imu2_data.gyro.y = gyro.gyro.y*RAD_TO_DEG;
+      _imu2_data.gyro.z = gyro.gyro.z*RAD_TO_DEG;
     }
     if (_get_mag) {    // If we don't need to retrieve mag data we won't waste time doing this
       _imu2_m->getEvent(&mag);
@@ -154,15 +161,15 @@ threeImuData MECH5030_Sensors::getData(void)
       _imu2_data.mag.z = mag.magnetic.z;
     }
     
-    // >> Data collection for IMU 3
+    // IMU 3 Data Read (M/S^2, rad/s, uT)
     if (_get_accel || _get_gyro) {    //Since accel and gyro are on the same chip we must do both together
       _imu3_ag->getEvent(&accel, &gyro, &temp);
       _imu3_data.accel.x = accel.acceleration.x;
       _imu3_data.accel.y = accel.acceleration.y;
       _imu3_data.accel.z = accel.acceleration.z;
-      _imu3_data.gyro.x = gyro.gyro.x;
-      _imu3_data.gyro.y = gyro.gyro.y;
-      _imu3_data.gyro.z = gyro.gyro.z;
+      _imu3_data.gyro.x = gyro.gyro.x*RAD_TO_DEG;
+      _imu3_data.gyro.y = gyro.gyro.y*RAD_TO_DEG;
+      _imu3_data.gyro.z = gyro.gyro.z*RAD_TO_DEG;
     }
     if (_get_mag) {    // If we don't need to retrieve mag data we won't waste time doing this
       _imu3_m->getEvent(&mag);
@@ -171,7 +178,12 @@ threeImuData MECH5030_Sensors::getData(void)
       _imu3_data.mag.z = mag.magnetic.z;
     }
     
-    return {timestamp, _imu1_data.accel.x, _imu1_data.accel.y, _imu1_data.accel.z, _imu1_data.gyro.x, _imu1_data.gyro.y, _imu1_data.gyro.z, _imu1_data.mag.x, _imu1_data.mag.y, _imu1_data.mag.z, _imu2_data.accel.x, _imu2_data.accel.y, _imu2_data.accel.z, _imu2_data.gyro.x, _imu2_data.gyro.y, _imu2_data.gyro.z, _imu2_data.mag.x, _imu2_data.mag.y, _imu2_data.mag.z, _imu3_data.accel.x, _imu3_data.accel.y, _imu3_data.accel.z, _imu3_data.gyro.x, _imu3_data.gyro.y, _imu3_data.gyro.z, _imu3_data.mag.x, _imu3_data.mag.y, _imu3_data.mag.z};
+    return {
+        timestamp,
+        _imu1_data.accel.x, _imu1_data.accel.y, _imu1_data.accel.z, _imu1_data.gyro.x, _imu1_data.gyro.y, _imu1_data.gyro.z, _imu1_data.mag.x, _imu1_data.mag.y, _imu1_data.mag.z,
+        _imu2_data.accel.x, _imu2_data.accel.y, _imu2_data.accel.z, _imu2_data.gyro.x, _imu2_data.gyro.y, _imu2_data.gyro.z, _imu2_data.mag.x, _imu2_data.mag.y, _imu2_data.mag.z,
+        _imu3_data.accel.x, _imu3_data.accel.y, _imu3_data.accel.z, _imu3_data.gyro.x, _imu3_data.gyro.y, _imu3_data.gyro.z, _imu3_data.mag.x, _imu3_data.mag.y, _imu3_data.mag.z
+        };
     
 }
 

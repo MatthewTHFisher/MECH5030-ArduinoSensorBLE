@@ -131,6 +131,10 @@ threeImuData MECH5030_Sensors::getData(void)
     // Onboard IMU-Gyrometer reads data in
     if (_imu1->gyroscopeAvailable() && gyroEnabled) {
         _imu1->readGyroscope(_imu1_data.gyro.x, _imu1_data.gyro.y, _imu1_data.gyro.z);
+        
+        _imu1_data.gyro.x = _imu1_data.gyro.x - imu1GyroOffsets.x;
+        _imu1_data.gyro.y = _imu1_data.gyro.y - imu1GyroOffsets.y;
+        _imu1_data.gyro.z = _imu1_data.gyro.z - imu1GyroOffsets.z;
     }
     
     // Onboard IMU-Magnetometer reads data in uT
@@ -150,9 +154,9 @@ threeImuData MECH5030_Sensors::getData(void)
       _imu2_data.accel.x = accel.acceleration.x;
       _imu2_data.accel.y = accel.acceleration.y;
       _imu2_data.accel.z = accel.acceleration.z;
-      _imu2_data.gyro.x = gyro.gyro.x*RAD_TO_DEG;
-      _imu2_data.gyro.y = gyro.gyro.y*RAD_TO_DEG;
-      _imu2_data.gyro.z = gyro.gyro.z*RAD_TO_DEG;
+      _imu2_data.gyro.x = (gyro.gyro.x*RAD_TO_DEG) - imu2GyroOffsets.x;
+      _imu2_data.gyro.y = (gyro.gyro.y*RAD_TO_DEG) - imu2GyroOffsets.y;
+      _imu2_data.gyro.z = (gyro.gyro.z*RAD_TO_DEG) - imu2GyroOffsets.z;
     }
     if (magEnabled) {    // If we don't need to retrieve mag data we won't waste time doing this
       _imu2_m->getEvent(&mag);
@@ -167,9 +171,9 @@ threeImuData MECH5030_Sensors::getData(void)
       _imu3_data.accel.x = accel.acceleration.x;
       _imu3_data.accel.y = accel.acceleration.y;
       _imu3_data.accel.z = accel.acceleration.z;
-      _imu3_data.gyro.x = gyro.gyro.x*RAD_TO_DEG;
-      _imu3_data.gyro.y = gyro.gyro.y*RAD_TO_DEG;
-      _imu3_data.gyro.z = gyro.gyro.z*RAD_TO_DEG;
+      _imu3_data.gyro.x = (gyro.gyro.x*RAD_TO_DEG) - imu3GyroOffsets.x;
+      _imu3_data.gyro.y = (gyro.gyro.y*RAD_TO_DEG) - imu3GyroOffsets.y;
+      _imu3_data.gyro.z = (gyro.gyro.z*RAD_TO_DEG) - imu3GyroOffsets.z;
     }
     if (magEnabled) {    // If we don't need to retrieve mag data we won't waste time doing this
       _imu3_m->getEvent(&mag);

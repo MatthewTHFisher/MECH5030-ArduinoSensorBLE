@@ -29,9 +29,9 @@
  *    Serial.println(accel_reading.x);
  */
 struct xyzData {
-    float x;
-    float y;
-    float z;
+    float x = 0;
+    float y = 0;
+    float z = 0;
 };
 
 /**
@@ -65,8 +65,12 @@ class MECH5030_Sensors{
   public:
     
     bool accelEnabled = true; // Whether data should be collected for accelerometers
-    bool gyroEnabled; // Whether data should be collected for gyroscopes
-    bool magEnabled; // Whether data should be collected for magnetometers
+    bool gyroEnabled = true; // Whether data should be collected for gyroscopes
+    bool magEnabled = true; // Whether data should be collected for magnetometers
+    
+    xyzData imu1GyroOffsets;  // Variables to hold the offsets set for the gyro of IMU1
+    xyzData imu2GyroOffsets;  // Variables to hold the offsets set for the gyro of IMU2
+    xyzData imu3GyroOffsets;  // Variables to hold the offsets set for the gyro of IMU3
     
     /** Constructor */
     MECH5030_Sensors(void);

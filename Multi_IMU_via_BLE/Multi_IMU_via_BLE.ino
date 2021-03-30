@@ -20,12 +20,14 @@
 #include "Libraries/MECH5030_Sensors.cpp"
 
 #define BLE_LOCAL_NAME "LeedsMechEngWearable"
-#define IMU_SERVICE_UUID "f57fd14d-86fc-4d25-a03b-0009f23d4bfd"  // "C3D0" (Previous value)
+#define IMU_SERVICE_UUID                  "f57fd14d-86fc-4d25-a03b-0009f23d4bfd"  // "C3D0" (Previous value)
+#define SENSOR_CALIBRATION_SERVICE_UUID   "2b53a4b1-33b9-48e4-945c-b7c03f8b7819"  
 
 MECH5030_Sensors sensors;
 
  // BLE 9-DoF IMU Service
 BLEService imuService(IMU_SERVICE_UUID);
+BLEService sensorCalibrationService(SENSOR_CALIBRATION_SERVICE_UUID);
 
 // BLE IMU Characteristic list
 BLEBoolCharacteristic         startImuCharacteristic            ("49E8", BLERead | BLEWriteWithoutResponse | BLEWrite);   // 0 (False) or 1 (True), to start recording data
@@ -36,16 +38,22 @@ BLEBoolCharacteristic         gyroEnabledCharacteristic         ("3901", BLERead
 BLEBoolCharacteristic         magEnabledCharacteristic          ("552B", BLERead | BLEWriteWithoutResponse | BLEWrite);   // Whether magnetometer is being tracked
 BLEStringCharacteristic       imuStringCharacteristic           ("785F", BLERead | BLENotify, 1000);
 
+BLEFloatCharacteristic        imu1GyroXOffsetCharacteristic     ("6410", BLERead | BLEWriteWithoutResponse | BLEWrite);
+BLEFloatCharacteristic        imu1GyroYOffsetCharacteristic     ("6411", BLERead | BLEWriteWithoutResponse | BLEWrite);
+BLEFloatCharacteristic        imu1GyroZOffsetCharacteristic     ("6412", BLERead | BLEWriteWithoutResponse | BLEWrite);
+BLEFloatCharacteristic        imu2GyroXOffsetCharacteristic     ("6413", BLERead | BLEWriteWithoutResponse | BLEWrite);
+BLEFloatCharacteristic        imu2GyroYOffsetCharacteristic     ("6414", BLERead | BLEWriteWithoutResponse | BLEWrite);
+BLEFloatCharacteristic        imu2GyroZOffsetCharacteristic     ("6415", BLERead | BLEWriteWithoutResponse | BLEWrite);
+BLEFloatCharacteristic        imu3GyroXOffsetCharacteristic     ("6416", BLERead | BLEWriteWithoutResponse | BLEWrite);
+BLEFloatCharacteristic        imu3GyroYOffsetCharacteristic     ("6417", BLERead | BLEWriteWithoutResponse | BLEWrite);
+BLEFloatCharacteristic        imu3GyroZOffsetCharacteristic     ("6418", BLERead | BLEWriteWithoutResponse | BLEWrite);
+
 BLEBoolCharacteristic         setBleAdvertisingCharacteristic   ("E21A", BLERead | BLEWriteWithoutResponse | BLEWrite);   // The BLE's advertising state
 
 volatile long previousMillis = 0;      // Variable used within the main loop timer
 volatile bool imu_read = false;        // Whether to read and send IMU data or not
 bool ble_connected = false;            // Whether a BLE device is connected or not
 bool ble_advertising = false;          // Whether the BLE is being advertised
-
-//volatile bool get_accel = true;   // Whether data should be collected for accelerometers
-//volatile bool get_gyro = true;    // Whether data should be collected for gyroscopes
-//volatile bool get_mag = true;     // Whether data should be collected for magnetometers
 
 // Adjustable variables to adjust the imu recording
 volatile unsigned char dec_precision = 3;    // Number pf digits after the decimal point
@@ -136,6 +144,12 @@ bool ble_init() {
   if (!BLE.begin()) { Serial.println("starting BLE failed!"); return false; }
 
   BLE.setLocalName("LeedsMechEngWearable");  // The name that will be visible when searching for the device
+  
+  // Set callback functions to be called when an event such as a BLE device connects occurs
+  BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
+  BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler);
+
+  // <- Operations for imuService
   BLE.setAdvertisedService(imuService);      // Advertise the service UUID so that the service can be accessed
 
   // Add the characteristics to the service
@@ -161,10 +175,6 @@ bool ble_init() {
   magEnabledCharacteristic.writeValue(sensors.magEnabled);
   setBleAdvertisingCharacteristic.writeValue(ble_advertising);
 
-  // Set callback functions to be called when an event such as a BLE device connects occurs
-  BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
-  BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler);
-
   // Set callback functions to be called when a characteristics is written too
   startImuCharacteristic.setEventHandler(BLEWritten, imuStartCharacteristicWritten);
   setReadingPrecisionCharacteristic.setEventHandler(BLEWritten, imuPrecisionCharacteristicWritten);
@@ -173,6 +183,42 @@ bool ble_init() {
   gyroEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
   magEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
   setBleAdvertisingCharacteristic.setEventHandler(BLEWritten, setBleAdvertisingCharacteristicWritten);
+
+  // <- Operations for sensorCalibrationService
+  BLE.setAdvertisedService(sensorCalibrationService);
+  
+  sensorCalibrationService.addCharacteristic(imu1GyroXOffsetCharacteristic);
+  sensorCalibrationService.addCharacteristic(imu1GyroYOffsetCharacteristic);
+  sensorCalibrationService.addCharacteristic(imu1GyroZOffsetCharacteristic);
+  sensorCalibrationService.addCharacteristic(imu2GyroXOffsetCharacteristic);
+  sensorCalibrationService.addCharacteristic(imu2GyroYOffsetCharacteristic);
+  sensorCalibrationService.addCharacteristic(imu2GyroZOffsetCharacteristic);
+  sensorCalibrationService.addCharacteristic(imu3GyroXOffsetCharacteristic);
+  sensorCalibrationService.addCharacteristic(imu3GyroYOffsetCharacteristic);
+  sensorCalibrationService.addCharacteristic(imu3GyroZOffsetCharacteristic);
+
+  // Set initial values for characteristics
+  imu1GyroXOffsetCharacteristic.writeValue(sensors.imu1GyroOffsets.x);
+  imu1GyroYOffsetCharacteristic.writeValue(sensors.imu1GyroOffsets.y);
+  imu1GyroZOffsetCharacteristic.writeValue(sensors.imu1GyroOffsets.z);
+  imu2GyroXOffsetCharacteristic.writeValue(sensors.imu2GyroOffsets.x);
+  imu2GyroYOffsetCharacteristic.writeValue(sensors.imu2GyroOffsets.y);
+  imu2GyroZOffsetCharacteristic.writeValue(sensors.imu2GyroOffsets.z);
+  imu3GyroXOffsetCharacteristic.writeValue(sensors.imu3GyroOffsets.x);
+  imu3GyroYOffsetCharacteristic.writeValue(sensors.imu3GyroOffsets.y);
+  imu3GyroZOffsetCharacteristic.writeValue(sensors.imu3GyroOffsets.z);
+
+  imu1GyroXOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+  imu1GyroYOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+  imu1GyroZOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+  imu2GyroXOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+  imu2GyroYOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+  imu2GyroZOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+  imu3GyroXOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+  imu3GyroYOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+  imu3GyroZOffsetCharacteristic.setEventHandler(BLEWritten, imuGyroOffsetCharacteristicWritten);
+
+  BLE.addService(sensorCalibrationService);
 
   // start advertising the BLE signal
   BLE.advertise();
@@ -286,6 +332,42 @@ void setBleAdvertisingCharacteristicWritten(BLEDevice central, BLECharacteristic
     ble_advertising = true;
   }
 
+}
+
+void imuGyroOffsetCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+
+  float float_value = *((float*)(characteristic.value()));
+
+  if (characteristic.uuid() == imu1GyroXOffsetCharacteristic.uuid()) {
+    sensors.imu1GyroOffsets.x = float_value;
+    Serial.print("Set IMU 1 Gyro X Offset to: ");
+  } else if (characteristic.uuid() == imu1GyroYOffsetCharacteristic.uuid()) {
+    sensors.imu1GyroOffsets.y = float_value;
+    Serial.print("Set IMU 1 Gyro Y Offset to: ");
+  } else if (characteristic.uuid() == imu1GyroZOffsetCharacteristic.uuid()) {
+    sensors.imu1GyroOffsets.z = float_value;
+    Serial.print("Set IMU 1 Gyro Z Offset to: ");
+  } else if (characteristic.uuid() == imu2GyroXOffsetCharacteristic.uuid()) {
+    sensors.imu2GyroOffsets.x = float_value;
+    Serial.print("Set IMU 2 Gyro X Offset to: ");
+  } else if (characteristic.uuid() == imu2GyroYOffsetCharacteristic.uuid()) {
+    sensors.imu2GyroOffsets.y = float_value;
+    Serial.print("Set IMU 2 Gyro Y Offset to: ");
+  } else if (characteristic.uuid() == imu2GyroZOffsetCharacteristic.uuid()) {
+    sensors.imu2GyroOffsets.z = float_value;
+    Serial.print("Set IMU 2 Gyro Z Offset to: ");
+  } else if (characteristic.uuid() == imu3GyroXOffsetCharacteristic.uuid()) {
+    sensors.imu3GyroOffsets.x = float_value;
+    Serial.print("Set IMU 3 Gyro X Offset to: ");
+  } else if (characteristic.uuid() == imu3GyroYOffsetCharacteristic.uuid()) {
+    sensors.imu3GyroOffsets.y = float_value;
+    Serial.print("Set IMU 3 Gyro Y Offset to: ");
+  } else if (characteristic.uuid() == imu3GyroZOffsetCharacteristic.uuid()) {
+    sensors.imu3GyroOffsets.z = float_value;
+    Serial.print("Set IMU 3 Gyro Z Offset to: ");
+  } 
+  
+  Serial.println(float_value,6);
 }
 
 

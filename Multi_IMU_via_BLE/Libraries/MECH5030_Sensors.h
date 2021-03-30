@@ -63,6 +63,11 @@ class MECH5030_Sensors{
     Adafruit_LIS3MDL *_imu3_m;
     
   public:
+    
+    bool accelEnabled = true; // Whether data should be collected for accelerometers
+    bool gyroEnabled; // Whether data should be collected for gyroscopes
+    bool magEnabled; // Whether data should be collected for magnetometers
+    
     /** Constructor */
     MECH5030_Sensors(void);
     
@@ -84,10 +89,6 @@ class MECH5030_Sensors{
     bool init_ext_imu_ag(Adafruit_LSM6DS33 *_imu);
     
     bool init_ext_imu_m(Adafruit_LIS3MDL *_imu);
-    
-    volatile bool _get_accel = true;   // Whether data should be collected for accelerometers
-    volatile bool _get_gyro = true;    // Whether data should be collected for gyroscopes
-    volatile bool _get_mag = true;     // Whether data should be collected for magnetometers
     
     // Struct variables to hold the imu data
     imuData _imu1_data;

@@ -74,17 +74,17 @@ bool MECH5030_Sensors::init_ext_imu_m(Adafruit_LIS3MDL *_imu)
 
 void MECH5030_Sensors::getAccelerometer(bool state)
 {
-    _get_accel = state;
+    accelEnabled = state;
 }
 
 void MECH5030_Sensors::getGyrometer(bool state)
 {
-    _get_gyro = state;
+    gyroEnabled = state;
 }
 
 void MECH5030_Sensors::getMagnetometer(bool state)
 {
-    _get_mag = state;
+    magEnabled = state;
 }
 
 String MECH5030_Sensors::getDataAsString(String delim, unsigned char dec_precision)
@@ -94,19 +94,19 @@ String MECH5030_Sensors::getDataAsString(String delim, unsigned char dec_precisi
     String str = String(data.timestamp);
 
     // Adds data for IMU 1 (The onboard imu)
-    if(_get_accel){ str = str + delim + String(data.imu1.accel.x, dec_precision) + delim + String(data.imu1.accel.y, dec_precision) + delim + String(data.imu1.accel.z, dec_precision); }
-    if(_get_gyro){ str = str + delim + String(data.imu1.gyro.x, dec_precision) + delim + String(data.imu1.gyro.y, dec_precision) + delim + String(data.imu1.gyro.z, dec_precision); }
-    if(_get_mag){ str = str + delim + String(data.imu1.mag.x, dec_precision) + delim + String(data.imu1.mag.y, dec_precision) + delim + String(data.imu1.mag.z, dec_precision); }
+    if(accelEnabled){ str = str + delim + String(data.imu1.accel.x, dec_precision) + delim + String(data.imu1.accel.y, dec_precision) + delim + String(data.imu1.accel.z, dec_precision); }
+    if(gyroEnabled){ str = str + delim + String(data.imu1.gyro.x, dec_precision) + delim + String(data.imu1.gyro.y, dec_precision) + delim + String(data.imu1.gyro.z, dec_precision); }
+    if(magEnabled){ str = str + delim + String(data.imu1.mag.x, dec_precision) + delim + String(data.imu1.mag.y, dec_precision) + delim + String(data.imu1.mag.z, dec_precision); }
 
     // Adds data for IMU 2
-    if(_get_accel){ str = str + delim + String(data.imu2.accel.x, dec_precision) + delim + String(data.imu2.accel.y, dec_precision) + delim + String(data.imu2.accel.z, dec_precision); }
-    if(_get_gyro){ str = str + delim + String(data.imu2.gyro.x, dec_precision) + delim + String(data.imu2.gyro.y, dec_precision) + delim + String(data.imu2.gyro.z, dec_precision); }
-    if(_get_mag){ str = str + delim + String(data.imu2.mag.x, dec_precision) + delim + String(data.imu2.mag.y, dec_precision) + delim + String(data.imu2.mag.z, dec_precision); }
+    if(accelEnabled){ str = str + delim + String(data.imu2.accel.x, dec_precision) + delim + String(data.imu2.accel.y, dec_precision) + delim + String(data.imu2.accel.z, dec_precision); }
+    if(gyroEnabled){ str = str + delim + String(data.imu2.gyro.x, dec_precision) + delim + String(data.imu2.gyro.y, dec_precision) + delim + String(data.imu2.gyro.z, dec_precision); }
+    if(magEnabled){ str = str + delim + String(data.imu2.mag.x, dec_precision) + delim + String(data.imu2.mag.y, dec_precision) + delim + String(data.imu2.mag.z, dec_precision); }
 
     // Adds data for IMU 3
-    if(_get_accel){ str = str + delim + String(data.imu3.accel.x, dec_precision) + delim + String(data.imu3.accel.y, dec_precision) + delim + String(data.imu3.accel.z, dec_precision); }
-    if(_get_gyro){ str = str + delim + String(data.imu3.gyro.x, dec_precision) + delim + String(data.imu3.gyro.y, dec_precision) + delim + String(data.imu3.gyro.z, dec_precision); }
-    if(_get_mag){ str = str + delim + String(data.imu3.mag.x, dec_precision) + delim + String(data.imu3.mag.y, dec_precision) + delim + String(data.imu3.mag.z, dec_precision); }
+    if(accelEnabled){ str = str + delim + String(data.imu3.accel.x, dec_precision) + delim + String(data.imu3.accel.y, dec_precision) + delim + String(data.imu3.accel.z, dec_precision); }
+    if(gyroEnabled){ str = str + delim + String(data.imu3.gyro.x, dec_precision) + delim + String(data.imu3.gyro.y, dec_precision) + delim + String(data.imu3.gyro.z, dec_precision); }
+    if(magEnabled){ str = str + delim + String(data.imu3.mag.x, dec_precision) + delim + String(data.imu3.mag.y, dec_precision) + delim + String(data.imu3.mag.z, dec_precision); }
 
     return str;
 }
@@ -119,7 +119,7 @@ threeImuData MECH5030_Sensors::getData(void)
     
     // IMU 1 Data Read (G's, deg/s, uT)
     // >> Data collection for the Nano's built-in IMU
-    if (_imu1->accelerationAvailable() && _get_accel)  {
+    if (_imu1->accelerationAvailable() && accelEnabled)  {
         _imu1->readAcceleration(_imu1_data.accel.x, _imu1_data.accel.y, _imu1_data.accel.z);
 
         //Onboard IMU-accelerometer requires converting to change from G's into M/S^2
@@ -129,12 +129,12 @@ threeImuData MECH5030_Sensors::getData(void)
     }
     
     // Onboard IMU-Gyrometer reads data in
-    if (_imu1->gyroscopeAvailable() && _get_gyro) {
+    if (_imu1->gyroscopeAvailable() && gyroEnabled) {
         _imu1->readGyroscope(_imu1_data.gyro.x, _imu1_data.gyro.y, _imu1_data.gyro.z);
     }
     
     // Onboard IMU-Magnetometer reads data in uT
-    if (_imu1->magneticFieldAvailable() && _get_mag) {
+    if (_imu1->magneticFieldAvailable() && magEnabled) {
         _imu1->readMagneticField(_imu1_data.mag.x, _imu1_data.mag.y, _imu1_data.mag.z);
     }
     
@@ -145,7 +145,7 @@ threeImuData MECH5030_Sensors::getData(void)
     sensors_event_t mag;
     
     // IMU 2 Data Read (M/S^2, rad/s, uT)
-    if (_get_accel || _get_gyro) {    //Since accel and gyro are on the same chip we must do both together
+    if (accelEnabled || gyroEnabled) {    //Since accel and gyro are on the same chip we must do both together
       _imu2_ag->getEvent(&accel, &gyro, &temp);
       _imu2_data.accel.x = accel.acceleration.x;
       _imu2_data.accel.y = accel.acceleration.y;
@@ -154,7 +154,7 @@ threeImuData MECH5030_Sensors::getData(void)
       _imu2_data.gyro.y = gyro.gyro.y*RAD_TO_DEG;
       _imu2_data.gyro.z = gyro.gyro.z*RAD_TO_DEG;
     }
-    if (_get_mag) {    // If we don't need to retrieve mag data we won't waste time doing this
+    if (magEnabled) {    // If we don't need to retrieve mag data we won't waste time doing this
       _imu2_m->getEvent(&mag);
       _imu2_data.mag.x = mag.magnetic.x;
       _imu2_data.mag.y = mag.magnetic.y;
@@ -162,7 +162,7 @@ threeImuData MECH5030_Sensors::getData(void)
     }
     
     // IMU 3 Data Read (M/S^2, rad/s, uT)
-    if (_get_accel || _get_gyro) {    //Since accel and gyro are on the same chip we must do both together
+    if (accelEnabled || gyroEnabled) {    //Since accel and gyro are on the same chip we must do both together
       _imu3_ag->getEvent(&accel, &gyro, &temp);
       _imu3_data.accel.x = accel.acceleration.x;
       _imu3_data.accel.y = accel.acceleration.y;
@@ -171,7 +171,7 @@ threeImuData MECH5030_Sensors::getData(void)
       _imu3_data.gyro.y = gyro.gyro.y*RAD_TO_DEG;
       _imu3_data.gyro.z = gyro.gyro.z*RAD_TO_DEG;
     }
-    if (_get_mag) {    // If we don't need to retrieve mag data we won't waste time doing this
+    if (magEnabled) {    // If we don't need to retrieve mag data we won't waste time doing this
       _imu3_m->getEvent(&mag);
       _imu3_data.mag.x = mag.magnetic.x;
       _imu3_data.mag.y = mag.magnetic.y;

@@ -36,16 +36,16 @@ BLEBoolCharacteristic         gyroEnabledCharacteristic         ("3901", BLERead
 BLEBoolCharacteristic         magEnabledCharacteristic          ("552B", BLERead | BLEWriteWithoutResponse | BLEWrite);   // Whether magnetometer is being tracked
 BLEStringCharacteristic       imuStringCharacteristic           ("785F", BLERead | BLENotify, 1000);
 
-BLEBoolCharacteristic         setBleAdvertising                 ("E21A", BLERead | BLEWriteWithoutResponse | BLEWrite);   // The BLE's advertising state
+BLEBoolCharacteristic         setBleAdvertisingCharacteristic   ("E21A", BLERead | BLEWriteWithoutResponse | BLEWrite);   // The BLE's advertising state
 
 volatile long previousMillis = 0;      // Variable used within the main loop timer
 volatile bool imu_read = false;        // Whether to read and send IMU data or not
 bool ble_connected = false;            // Whether a BLE device is connected or not
 bool ble_advertising = false;          // Whether the BLE is being advertised
 
-volatile bool get_accel = true;   // Whether data should be collected for accelerometers
-volatile bool get_gyro = true;    // Whether data should be collected for gyroscopes
-volatile bool get_mag = true;     // Whether data should be collected for magnetometers
+//volatile bool get_accel = true;   // Whether data should be collected for accelerometers
+//volatile bool get_gyro = true;    // Whether data should be collected for gyroscopes
+//volatile bool get_mag = true;     // Whether data should be collected for magnetometers
 
 // Adjustable variables to adjust the imu recording
 volatile unsigned char dec_precision = 3;    // Number pf digits after the decimal point
@@ -125,6 +125,8 @@ void loop() {
       // If nothing conencted and BLE isn't being advertised
       // Start to advertise again
       BLE.advertise();
+      ble_advertising = true;
+      setBleAdvertisingCharacteristic.writeValue(ble_advertising);
     }
     
   }
@@ -144,6 +146,7 @@ bool ble_init() {
   imuService.addCharacteristic(accelEnabledCharacteristic);
   imuService.addCharacteristic(gyroEnabledCharacteristic);
   imuService.addCharacteristic(magEnabledCharacteristic);
+  imuService.addCharacteristic(setBleAdvertisingCharacteristic);
 
   // Add the imu service
   BLE.addService(imuService); 
@@ -153,9 +156,10 @@ bool ble_init() {
   imuStringCharacteristic.writeValue("");
   setReadingPrecisionCharacteristic.writeValue(dec_precision);
   setReadingFrequencyCharacteristic.writeValue(imu_frequency);
-  accelEnabledCharacteristic.writeValue(get_accel);
-  gyroEnabledCharacteristic.writeValue(get_gyro);
-  magEnabledCharacteristic.writeValue(get_mag);
+  accelEnabledCharacteristic.writeValue(sensors.accelEnabled);
+  gyroEnabledCharacteristic.writeValue(sensors.gyroEnabled);
+  magEnabledCharacteristic.writeValue(sensors.magEnabled);
+  setBleAdvertisingCharacteristic.writeValue(ble_advertising);
 
   // Set callback functions to be called when an event such as a BLE device connects occurs
   BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
@@ -168,10 +172,12 @@ bool ble_init() {
   accelEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
   gyroEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
   magEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
+  setBleAdvertisingCharacteristic.setEventHandler(BLEWritten, setBleAdvertisingCharacteristicWritten);
 
   // start advertising the BLE signal
   BLE.advertise();
   ble_advertising = true;
+  setBleAdvertisingCharacteristic.writeValue(ble_advertising);
 
   return true;
 }
@@ -182,9 +188,7 @@ void blePeripheralConnectHandler(BLEDevice central) {
   Serial.println(central.address());
 
   // Set RGB LED to Blue to signal a succesful connection
-  write_rgb_led(0,
-                0,
-                255);
+  write_rgb_led(0, 0, 255);
 
   ble_connected = true;
 
@@ -247,21 +251,18 @@ void imuSetupCharacteristicWritten(BLEDevice central, BLECharacteristic characte
 
   // If statements to determine which characteristic was written to
   if (characteristic.uuid() == accelEnabledCharacteristic.uuid()) {
-    get_accel = flag;
     sensors.getAccelerometer(flag);
     
     if(flag){  Serial.println("Accelerometer enabled!"); }
     else{  Serial.println("Accelerometer disabled!"); }
     
   }else if (characteristic.uuid() == gyroEnabledCharacteristic.uuid()) {
-    get_gyro = flag;
     sensors.getGyrometer(flag);
     
     if(flag){  Serial.println("Gyrometer enabled!"); }
     else{  Serial.println("Gyrometer disabled!"); }
     
   }else if (characteristic.uuid() == magEnabledCharacteristic.uuid()) {
-    get_mag = flag;
     sensors.getMagnetometer(flag);
     
     if(flag){  Serial.println("Magnetometer enabled!"); }

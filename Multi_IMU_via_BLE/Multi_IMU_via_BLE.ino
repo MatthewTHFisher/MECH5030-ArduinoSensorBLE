@@ -19,8 +19,6 @@
 #include "Libraries/MECH5030_Sensors.h"
 #include "Libraries/MECH5030_Sensors.cpp"
 
-// Test
-
 #define BLE_LOCAL_NAME "LeedsMechEngWearable"
 #define IMU_SERVICE_UUID                  "f57fd14d-86fc-4d25-a03b-0009f23d4bfd"  // "C3D0" (Previous value)
 #define SENSOR_CALIBRATION_SERVICE_UUID   "2b53a4b1-33b9-48e4-945c-b7c03f8b7819"  
@@ -53,13 +51,14 @@ BLEFloatCharacteristic        imu3GyroZOffsetCharacteristic     ("6418", BLERead
 BLEBoolCharacteristic         setBleAdvertisingCharacteristic   ("E21A", BLERead | BLEWriteWithoutResponse | BLEWrite);   // The BLE's advertising state
 
 volatile long previousMillis = 0;      // Variable used within the main loop timer
+volatile long currentMillis = 0;       // Variable used within the main loop timer
 volatile bool imu_read = false;        // Whether to read and send IMU data or not
 bool ble_connected = false;            // Whether a BLE device is connected or not
 bool ble_advertising = false;          // Whether the BLE is being advertised
 
 // Adjustable variables to adjust the imu recording
-volatile unsigned char dec_precision = 3;    // Number pf digits after the decimal point
-volatile unsigned char imu_frequency = 10;   // Frequency that results are recorded (Hz)
+volatile unsigned char dec_precision = 3;    // Number pf digits after the decimal point (Default = 3)
+volatile unsigned char imu_frequency = 10;   // Frequency that results are recorded in Hz (Default = 10 Hz)
 
 // Function definitions. These can be found later on in the file
 bool ble_init();
@@ -111,7 +110,7 @@ void loop() {
   if (central) {    
     while (central.connected()) {
       
-      long currentMillis = millis();
+      currentMillis = millis();
 
       // Timer check to so that code is only completed to time of imu_frequency
       if ( (imu_read == true) && (currentMillis - previousMillis >= (1000/imu_frequency)) ) {
@@ -271,19 +270,19 @@ void imuStartCharacteristicWritten(BLEDevice central, BLECharacteristic characte
 
 // Function called when imuPrecision characteristic is written, it alters the number of decimal points sent via BLE
 void imuPrecisionCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  dec_precision = *((unsigned char*)(characteristic.value()));
+
   Serial.print("IMU Precision written: ");
-  Serial.println(characteristic.value()[0]);
-  
-  dec_precision = characteristic.value()[0];
+  Serial.println(dec_precision);
 }
 
 // Function called when imuFrequency characteristic is written, it alters how often the IMU is read
 // Note: Mag has a max frequency of 20hz
 void imuFrequencyCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  imu_frequency = *((unsigned char*)(characteristic.value()));
+
   Serial.print("IMU Frequency written: ");
-  Serial.println(characteristic.value()[0]);
-  
-  imu_frequency = characteristic.value()[0];
+  Serial.println(imu_frequency);
 }
 
 // Function called when a imuSetup char is written eg (accelEnabledCharacteristic)

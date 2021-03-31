@@ -19,6 +19,7 @@
 #include <Arduino_LSM9DS1.h>    // Library for Nano built-in IMU chip
 
 #define SENSORS_GRAVITY_STANDARD 9.81
+#define SERIAL_DEBUG 0
 
  // BLE 9-DoF IMU Service
 BLEService imuService("C3D0");
@@ -77,6 +78,7 @@ volatile unsigned char dec_precision = 3;    // Number pf digits after the decim
 volatile unsigned char imu_frequency = 10;   // Frequency that results are recorded (Hz)
 
 // Function definitions. These can be found later on in the file
+bool ble_init();       // Returns True if setup passed and False if setup failed
 void write_rgb_led();
 void crash_sequence();
 
@@ -106,54 +108,10 @@ void setup() {
    * The below is peripheral setup for all the built-in IMU
    * If it fails to setup then an endless crash loop is entered flashing a warning LED.
    */
-  if (!IMU.begin()) { Serial.println("Failed to initalise builtin IMU...");                                   crash_sequence(); }
-
-
-  // >> Start of BLE Setup
+  if (!IMU.begin()) { Serial.println("Failed to initalise builtin IMU..."); crash_sequence(); }
 
   // Initialise the BLE module found on the Arduino board
-  if (!BLE.begin()) { Serial.println("starting BLE failed!"); crash_sequence(); }
-
-  BLE.setLocalName("Arduino IMU");  // The name that will be visible when searching for the device
-  BLE.setAdvertisedService(imuService);      // Advertise the service UUID so that the service can be accessed
-
-  // Add the characteristics to the service
-  imuService.addCharacteristic(startImuCharacteristic);
-  imuService.addCharacteristic(imuStringCharacteristic);
-  imuService.addCharacteristic(setReadingPrecisionCharacteristic);
-  imuService.addCharacteristic(setReadingFrequencyCharacteristic);
-  imuService.addCharacteristic(accelEnabledCharacteristic);
-  imuService.addCharacteristic(gyroEnabledCharacteristic);
-  imuService.addCharacteristic(magEnabledCharacteristic);
-
-  // Add the imu service
-  BLE.addService(imuService); 
-
-  // Set initial values for characteristics
-  startImuCharacteristic.writeValue(imu_read);
-  imuStringCharacteristic.writeValue("");
-  setReadingPrecisionCharacteristic.writeValue(dec_precision);
-  setReadingFrequencyCharacteristic.writeValue(imu_frequency);
-  accelEnabledCharacteristic.writeValue(get_accel);
-  gyroEnabledCharacteristic.writeValue(get_gyro);
-  magEnabledCharacteristic.writeValue(get_mag);
-
-  // Set callback functions to be called when an event such as a BLE device connects occurs
-  BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
-  BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler);
-
-  // Set callback functions to be called when a characteristics is written too
-  startImuCharacteristic.setEventHandler(BLEWritten, imuStartCharacteristicWritten);
-  setReadingPrecisionCharacteristic.setEventHandler(BLEWritten, imuPrecisionCharacteristicWritten);
-  setReadingFrequencyCharacteristic.setEventHandler(BLEWritten, imuFrequencyCharacteristicWritten);
-  accelEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
-  gyroEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
-  magEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
-
-  // start advertising the BLE signal
-  BLE.advertise();
-
-  // >> End of BLE Setup
+  if (!ble_init()) { Serial.println("starting BLE failed!"); crash_sequence(); }
 
   // Signal to show that the device setup correctly
   for (int i = 0; i<=4; i++) {
@@ -166,35 +124,6 @@ void setup() {
   delay(500);
   Serial.println("Bluetooth device active, waiting for connection...");
 }
-
-// Function called when a BLE device conencts
-void blePeripheralConnectHandler(BLEDevice central) {
-  Serial.print("Connected event, central: ");
-  Serial.println(central.address());
-
-  // Set RGB LED to Blue to signal a succesful connection
-  write_rgb_led(0,0,255);
-
-  ble_connected = true;
-
-  // Since a device is connected, stop advertising the BLE signal
-  BLE.stopAdvertise();
-}
-
-void blePeripheralDisconnectHandler(BLEDevice central) {
-  // central disconnected event handler
-  Serial.print("Disconnected event, central: ");
-  Serial.println(central.address());
-
-  // Turn the RGB LED off to signal nothing connected
-  write_rgb_led(0,0,0);
-
-  ble_connected = false;
-
-  // Since no devices are connected, re-advertise
-  BLE.advertise();
-}
-
 
 void loop() {
   // wait for a BLE central
@@ -228,8 +157,7 @@ void loop() {
         
         // By default no data is printed to the console but for debugging purposes
         //  imu_to_print can be set to print over serial.
-        bool display_values = false;
-        if display_values {
+        if (SERIAL_DEBUG) {
           Serial.println(currentMillis);
           if(get_accel){
             Serial.print(imu_data.accel.x, dec_precision); Serial.print(",");
@@ -275,6 +203,82 @@ void loop() {
   }
 }
 
+bool ble_init() {
+  
+  if (!BLE.begin()) { Serial.println("starting BLE failed!"); return false; }
+  
+  BLE.setLocalName("Arduino IMU");  // The name that will be visible when searching for the device
+  BLE.setAdvertisedService(imuService);      // Advertise the service UUID so that the service can be accessed
+
+  // Add the characteristics to the service
+  imuService.addCharacteristic(startImuCharacteristic);
+  imuService.addCharacteristic(imuStringCharacteristic);
+  imuService.addCharacteristic(setReadingPrecisionCharacteristic);
+  imuService.addCharacteristic(setReadingFrequencyCharacteristic);
+  imuService.addCharacteristic(accelEnabledCharacteristic);
+  imuService.addCharacteristic(gyroEnabledCharacteristic);
+  imuService.addCharacteristic(magEnabledCharacteristic);
+
+  // Add the imu service
+  BLE.addService(imuService); 
+
+  // Set initial values for characteristics
+  startImuCharacteristic.writeValue(imu_read);
+  imuStringCharacteristic.writeValue("");
+  setReadingPrecisionCharacteristic.writeValue(dec_precision);
+  setReadingFrequencyCharacteristic.writeValue(imu_frequency);
+  accelEnabledCharacteristic.writeValue(get_accel);
+  gyroEnabledCharacteristic.writeValue(get_gyro);
+  magEnabledCharacteristic.writeValue(get_mag);
+
+  // Set callback functions to be called when an event such as a BLE device connects occurs
+  BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
+  BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler);
+
+  // Set callback functions to be called when a characteristics is written too
+  startImuCharacteristic.setEventHandler(BLEWritten, imuStartCharacteristicWritten);
+  setReadingPrecisionCharacteristic.setEventHandler(BLEWritten, imuPrecisionCharacteristicWritten);
+  setReadingFrequencyCharacteristic.setEventHandler(BLEWritten, imuFrequencyCharacteristicWritten);
+  accelEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
+  gyroEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
+  magEnabledCharacteristic.setEventHandler(BLEWritten, imuSetupCharacteristicWritten);
+
+  // start advertising the BLE signal
+  BLE.advertise();
+
+  return true;
+}
+
+// Function called when a BLE device conencts
+void blePeripheralConnectHandler(BLEDevice central) {
+  Serial.print("Connected event, central: ");
+  Serial.println(central.address());
+
+  // Set RGB LED to Blue to signal a succesful connection
+  write_rgb_led(0,0,255);
+
+  // Can't be used when multiple devices connect
+  //ble_connected = true;
+
+  // Keep advertising even when connected (Allows other devices to piggyback)
+  //BLE.stopAdvertise();  
+}
+
+void blePeripheralDisconnectHandler(BLEDevice central) {
+  // central disconnected event handler
+  Serial.print("Disconnected event, central: ");
+  Serial.println(central.address());
+
+  // Turn the RGB LED off to signal nothing connected
+  write_rgb_led(0,0,0);
+
+  // Can't be used when multiple devices connect
+  //ble_connected = false;
+
+  // Since no devices are connected, re-advertise
+  BLE.advertise();
+}
+
 // Function called when imuStart characteristic is written, it alters whether the IMU should be read or not.
 void imuStartCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
   if (characteristic.value()[0] == 0) { 
@@ -288,19 +292,19 @@ void imuStartCharacteristicWritten(BLEDevice central, BLECharacteristic characte
 
 // Function called when imuPrecision characteristic is written, it alters the number of decimal points sent via BLE
 void imuPrecisionCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  dec_precision = *((unsigned char*)(characteristic.value()));
+
   Serial.print("IMU Precision written: ");
-  Serial.println(characteristic.value()[0]);
-  
-  dec_precision = characteristic.value()[0];
+  Serial.println(dec_precision);
 }
 
 // Function called when imuFrequency characteristic is written, it alters how often the IMU is read
 // Note: Mag has a max frequency of 20hz
 void imuFrequencyCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  imu_frequency = *((unsigned char*)(characteristic.value()));
+
   Serial.print("IMU Frequency written: ");
-  Serial.println(characteristic.value()[0]);
-  
-  imu_frequency = characteristic.value()[0];
+  Serial.println(imu_frequency);
 }
 
 // Function called when a imuSetup char is written eg (accelEnabledCharacteristic)

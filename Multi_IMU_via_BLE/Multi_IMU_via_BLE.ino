@@ -36,7 +36,7 @@ BLEUnsignedCharCharacteristic setReadingFrequencyCharacteristic ("AE89", BLERead
 BLEBoolCharacteristic         accelEnabledCharacteristic        ("1A55", BLERead | BLEWriteWithoutResponse | BLEWrite);   // Whether acceleration is being tracked
 BLEBoolCharacteristic         gyroEnabledCharacteristic         ("3901", BLERead | BLEWriteWithoutResponse | BLEWrite);   // Whether gyroscope is being tracked
 BLEBoolCharacteristic         magEnabledCharacteristic          ("552B", BLERead | BLEWriteWithoutResponse | BLEWrite);   // Whether magnetometer is being tracked
-BLEStringCharacteristic       imuStringCharacteristic           ("785F", BLERead | BLENotify, 1000);
+BLEStringCharacteristic       imuStringCharacteristic           ("785F", BLERead | BLENotify, 350);
 
 BLEFloatCharacteristic        imu1GyroXOffsetCharacteristic     ("6410", BLERead | BLEWriteWithoutResponse | BLEWrite);
 BLEFloatCharacteristic        imu1GyroYOffsetCharacteristic     ("6411", BLERead | BLEWriteWithoutResponse | BLEWrite);
